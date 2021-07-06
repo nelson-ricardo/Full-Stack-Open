@@ -2,7 +2,7 @@ const Hello = (props) => {
   return (
     <div>
       <p>
-        Hello {props.name}, you are {props.age}!
+        Hello {props.name}, you are {props.age}! Nice to meet you
       </p>
     </div>
   );
