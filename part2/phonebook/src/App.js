@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from "react";
-import axios from 'axios';
-import Contact from "./components/Contact";
+
+import Person from "./components/Person";
 import Form from "./components/Form";
 import Filter from "./components/Filter";
+
+import contactServices from "./services/contacts";
 
 function App() {
   //states for the persons and new name
@@ -31,16 +33,45 @@ function App() {
       .reduce((values, value) => values.concat(value[0]), []);
 
     if (names.includes(newName)) {
-      alert(`${newName} is already in the phonebook`);
+      if (
+        window.confirm(
+          `${newName} is already in the phonebook, would you like to update the phone number`
+        )
+      ) {
+        const personToUpdate = persons.find(
+          (person) => person.name === newName
+        );
+        const changedPerson = { ...personToUpdate, number: newNumber };
+        contactServices
+          .updateNumber(personToUpdate.id, changedPerson)
+          .then((response) => {
+            console.log("success");
+            const updatedPersons = persons.map(person => person.id !== response.id ? person : response);
+            setPersons(updatedPersons);
+            setNewName('');
+            setNewNumber('');
+          })
+          .catch((error) => console.log("fail", error));
+      }
     } else {
       const newPerson = {
         name: newName,
         number: newNumber,
       };
+      contactServices.create(newPerson).then((data) => {
+        setPersons(persons.concat(data));
+        setNewName("");
+        setNewNumber("");
+      });
+    }
+  };
 
-      setPersons(persons.concat(newPerson));
-      setNewName("");
-      setNewNumber("");
+  const contactDel = (id, name) => {
+    if (window.confirm(`Do you want to delete the contact of ${name}`)) {
+      contactServices.delContact(id).then((data) => {
+        const newPersons = persons.filter((person) => person.id !== id);
+        setPersons(newPersons);
+      });
     }
   };
 
@@ -55,10 +86,8 @@ function App() {
 
   //useEffect hook
   useEffect(() => {
-    axios.get('http://localhost:3001/persons').then(response => {
-      setPersons(response.data);
-    })
-  },[])
+    contactServices.getAll().then((data) => setPersons(data));
+  }, []);
 
   return (
     <div>
@@ -77,18 +106,10 @@ function App() {
       <div>
         {search.length === 0
           ? persons.map((person) => (
-              <Contact
-                key={person.number}
-                name={person.name}
-                number={person.number}
-              />
+              <Person key={person.id} person={person} delCon={contactDel} />
             ))
           : filter.map((person) => (
-              <Contact
-                key={person.number}
-                name={person.name}
-                number={person.number}
-              />
+              <Person key={person.id} person={person} delCon={contactDel} />
             ))}
       </div>
     </div>
