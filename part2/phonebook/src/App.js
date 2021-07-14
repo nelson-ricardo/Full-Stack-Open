@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react";
 import Person from "./components/Person";
 import Form from "./components/Form";
 import Filter from "./components/Filter";
+import Notification from './components/Notification';
 
 import contactServices from "./services/contacts";
 
@@ -11,8 +12,12 @@ function App() {
   const [persons, setPersons] = useState([]);
   const [newName, setNewName] = useState("");
   const [newNumber, setNewNumber] = useState("");
+  //state for filtered persons and search
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState([]);
+  //state for notifications about changes in db
+  const [notification, setNotification] = useState(null);
+  const [error, setError] = useState(false);
 
   //event handlers
   const handleNameChange = (event) => {
@@ -47,11 +52,25 @@ function App() {
           .then((response) => {
             console.log("success");
             const updatedPersons = persons.map(person => person.id !== response.id ? person : response);
+            
+            setError(false);
+            setNotification(`${changedPerson.name}'s phone number has been updated`);
+            setTimeout(() => {
+              setError(null)
+            }, 5000)
+            
             setPersons(updatedPersons);
             setNewName('');
             setNewNumber('');
           })
-          .catch((error) => console.log("fail", error));
+          .catch((error) => {
+            console.log(error)
+            setError(true);
+            setNotification("Failure")
+            setTimeout(() => {
+              setError(null)
+            }, 2000);
+          });
       }
     } else {
       const newPerson = {
@@ -59,6 +78,11 @@ function App() {
         number: newNumber,
       };
       contactServices.create(newPerson).then((data) => {
+        setError(false);
+        setNotification(`${newPerson.name} has been added to the phonebook`);
+        setTimeout(() => {
+          setError(null)
+        }, 2000)
         setPersons(persons.concat(data));
         setNewName("");
         setNewNumber("");
@@ -71,6 +95,11 @@ function App() {
       contactServices.delContact(id).then((data) => {
         const newPersons = persons.filter((person) => person.id !== id);
         setPersons(newPersons);
+        setNotification(`${name} has been deleted`)
+        setError(false);
+        setTimeout(() => {
+          setError(null)
+        }, 2000)
       });
     }
   };
@@ -91,6 +120,9 @@ function App() {
 
   return (
     <div>
+      {
+        <Notification error={error} notification={notification}/>        
+      }
       <div>
         <Filter search={search} handleSearchChange={handleSearchChange} />
       </div>
